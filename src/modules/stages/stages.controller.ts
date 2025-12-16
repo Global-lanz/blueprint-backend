@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Delete, UseGuards } from '@nestjs/common';
 import { StagesService } from './stages.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -8,21 +8,25 @@ export class StagesController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  async create(@Body() body) {
-    // body: { projectId, name }
-    return this.stagesService.create(body.projectId, body.name);
+  async create(@Body() body: { projectId: string; name: string; order?: number }) {
+    return this.stagesService.create(body.projectId, body.name, body.order);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post(':id/value')
-  async addValue(@Param('id') id: string, @Body() body) {
-    // body: { content }
-    return this.stagesService.addValue(id, body.content);
+  @Put(':id')
+  async update(@Param('id') id: string, @Body() body: { name?: string; order?: number }) {
+    return this.stagesService.update(id, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async delete(@Param('id') id: string) {
+    return this.stagesService.delete(id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('project/:projectId')
-  async byProj(@Param('projectId') projectId: string) {
+  async byProject(@Param('projectId') projectId: string) {
     return this.stagesService.findByProject(projectId);
   }
 }

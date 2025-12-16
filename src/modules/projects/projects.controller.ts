@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Param, UseGuards, Req, Delete } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -7,10 +7,21 @@ export class ProjectsController {
   constructor(private service: ProjectsService) {}
 
   @UseGuards(JwtAuthGuard)
+  @Get('my')
+  async myProjects(@Req() req) {
+    return this.service.findByUser(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post()
-  async create(@Body() body) {
-    // body: { userId, templateId }
-    return this.service.createProject(body.userId, body.templateId);
+  async create(@Body() body: { name: string; templateId: string }, @Req() req) {
+    return this.service.createProject(req.user.id, body.templateId, body.name);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async delete(@Param('id') id: string, @Req() req) {
+    return this.service.deleteProject(id, req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)

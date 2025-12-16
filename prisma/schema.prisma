@@ -24,23 +24,43 @@ enum Role {
 }
 
 model Template {
-  id        String    @id @default(cuid())
-  name      String
-  version   String
-  tasks     Task[]
-  projects  ClientProject[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  name        String
+  version     String
+  description String?
+  isActive    Boolean   @default(true)
+  stages      TemplateStage[]
+  tasks       Task[]
+  projects    ClientProject[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model TemplateStage {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  order       Int
+  template    Template  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId  String
+  tasks       Task[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Task {
   id          String    @id @default(cuid())
   title       String
   description String?
-  template    Template  @relation(fields: [templateId], references: [id])
+  order       Int       @default(0)
+  stage       TemplateStage? @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  stageId     String?
+  template    Template  @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId  String
   subtasks    Subtask[]
   clientAnswers ClientTaskAnswer[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Subtask {
@@ -49,51 +69,79 @@ model Subtask {
   task      Task   @relation(fields: [taskId], references: [id])
   taskId    String
   clientAnswers ClientSubtaskAnswer[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ClientProject {
-  id        String     @id @default(cuid())
-  user      User       @relation(fields: [userId], references: [id])
-  userId    String
-  template  Template   @relation(fields: [templateId], references: [id])
-  templateId String
-  progress  Float      @default(0)
-  tasks     ClientTaskAnswer[]
-  subtasks  ClientSubtaskAnswer[]
-  stages    Stage[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id              String     @id @default(cuid())
+  name            String
+  templateVersion String
+  user            User       @relation(fields: [userId], references: [id])
+  userId          String
+  template        Template   @relation(fields: [templateId], references: [id])
+  templateId      String
+  progress        Float      @default(0)
+  projectStages   ProjectStage[]
+  projectTasks    ProjectTask[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model ProjectStage {
+  id          String    @id @default(cuid())
+  name        String
+  order       Int
+  project     ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  tasks       ProjectTask[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model ProjectTask {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  order       Int       @default(0)
+  completed   Boolean   @default(false)
+  stage       ProjectStage? @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  stageId     String?
+  project     ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  subtasks    ProjectSubtask[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model ProjectSubtask {
+  id          String   @id @default(cuid())
+  description String
+  completed   Boolean  @default(false)
+  task        ProjectTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model ClientTaskAnswer {
   id        String   @id @default(cuid())
-  project   ClientProject @relation(fields: [projectId], references: [id])
   projectId String
   task      Task     @relation(fields: [taskId], references: [id])
   taskId    String
   answer    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ClientSubtaskAnswer {
   id        String   @id @default(cuid())
-  project   ClientProject @relation(fields: [projectId], references: [id])
   projectId String
   subtask   Subtask  @relation(fields: [subtaskId], references: [id])
   subtaskId String
   answer    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model Stage {
-  id        String   @id @default(cuid())
-  project   ClientProject @relation(fields: [projectId], references: [id])
-  projectId String
-  name      String
-  values    StageValue[]
-}
 
-model StageValue {
-  id       String @id @default(cuid())
-  stage    Stage  @relation(fields: [stageId], references: [id])
-  stageId  String
-  content  String
-}
