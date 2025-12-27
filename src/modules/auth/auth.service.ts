@@ -13,16 +13,36 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) {
       console.log('User not found:', email);
-      return null;
+      throw new UnauthorizedException('Credenciais inválidas');
     }
+    
     console.log('User found, comparing password...');
     const match = await bcrypt.compare(pass, user.password);
     console.log('Password match:', match);
-    if (match) {
-      const { password, ...result } = user;
-      return result;
+    if (!match) {
+      throw new UnauthorizedException('Credenciais inválidas');
     }
-    return null;
+    
+    // Check if user is active
+    if (!user.isActive) {
+      console.log('User is inactive:', email);
+      throw new UnauthorizedException('Sua conta está desativada. Entre em contato com o administrador para reativar seu acesso.');
+    }
+    
+    // Check if license has expired
+    if (user.licenseExpiresAt && user.licenseExpiresAt < new Date()) {
+      console.log('User license expired:', email);
+      throw new UnauthorizedException('Sua licença expirou. Entre em contato com o administrador para renovar seu acesso.');
+    }
+    
+    // Update last login
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() }
+    });
+    
+    const { password, ...result } = user;
+    return result;
   }
 
   async login(user: any) {

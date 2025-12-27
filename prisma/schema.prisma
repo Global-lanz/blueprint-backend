@@ -7,15 +7,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum GemType {
+  ESMERALDA
+  RUBI
+  SAFIRA
+  DIAMANTE
+}
+
+enum ProjectStatus {
+  ATIVO
+  INATIVO
+}
+
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(CLIENT)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  projects  ClientProject[]
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  password          String
+  role              Role     @default(CLIENT)
+  isActive          Boolean  @default(true)
+  licenseExpiresAt  DateTime?
+  lastLoginAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  projects          ClientProject[]
+  auditLogs         UserAuditLog[]
 }
 
 enum Role {
@@ -26,7 +48,6 @@ enum Role {
 model Template {
   id          String    @id @default(cuid())
   name        String
-  version     String
   description String?
   isActive    Boolean   @default(true)
   stages      TemplateStage[]
@@ -41,6 +62,7 @@ model TemplateStage {
   name        String
   description String?
   order       Int
+  gemType     GemType   @default(ESMERALDA)
   template    Template  @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId  String
   tasks       Task[]
@@ -76,12 +98,17 @@ model Subtask {
 model ClientProject {
   id              String     @id @default(cuid())
   name            String
-  templateVersion String
-  user            User       @relation(fields: [userId], references: [id])
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId          String
   template        Template   @relation(fields: [templateId], references: [id])
   templateId      String
   progress        Float      @default(0)
+  currentGem      GemType?
+  status          ProjectStatus @default(ATIVO)
+  price           String?
+  currency        String?    @default("BRL")
+  saleStartDate   DateTime?
+  links           Json?
   projectStages   ProjectStage[]
   projectTasks    ProjectTask[]
   createdAt       DateTime   @default(now())
@@ -91,7 +118,9 @@ model ClientProject {
 model ProjectStage {
   id          String    @id @default(cuid())
   name        String
+  description String?
   order       Int
+  gemType     GemType   @default(ESMERALDA)
   project     ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId   String
   tasks       ProjectTask[]
@@ -100,11 +129,13 @@ model ProjectStage {
 }
 
 model ProjectTask {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   description String?
   order       Int       @default(0)
   completed   Boolean   @default(false)
+  status      TaskStatus @default(TODO)
+  link        String?
   stage       ProjectStage? @relation(fields: [stageId], references: [id], onDelete: Cascade)
   stageId     String?
   project     ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -117,7 +148,9 @@ model ProjectTask {
 model ProjectSubtask {
   id          String   @id @default(cuid())
   description String
+  answer      String?
   completed   Boolean  @default(false)
+  link        String?
   task        ProjectTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId      String
   createdAt   DateTime @default(now())
@@ -142,6 +175,49 @@ model ClientSubtaskAnswer {
   answer    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Settings {
+  id                        String   @id @default(cuid())
+  key                       String   @unique
+  value                     String
+  description               String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+enum AuditAction {
+  USER_CREATED
+  USER_UPDATED
+  USER_ACTIVATED
+  USER_DEACTIVATED
+  USER_DELETED
+  PASSWORD_CHANGED
+  LICENSE_EXTENDED
+  LICENSE_EXPIRED
+  ROLE_CHANGED
+}
+
+enum AuditSource {
+  ADMIN_PANEL
+  WEBHOOK
+  SYSTEM
+  SELF
+}
+
+model UserAuditLog {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action      AuditAction
+  source      AuditSource
+  performedBy String?     // ID do admin que realizou a ação, ou null se foi sistema/webhook
+  details     String?     // JSON com detalhes adicionais (campo alterado, valor anterior, etc)
+  ipAddress   String?
+  createdAt   DateTime    @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 

@@ -10,7 +10,7 @@ export class TemplatesService {
     const template = await this.prisma.template.create({
       data: {
         name: data.name,
-        version: data.version || '1.0',
+
         description: data.description || null,
       }
     });
@@ -22,6 +22,7 @@ export class TemplatesService {
           name: stage.name,
           description: stage.description || null,
           order: stageIndex,
+          gemType: stage.gemType || 'ESMERALDA',
           templateId: template.id,
           tasks: {
             create: (stage.tasks || []).map((t, taskIndex) => ({
@@ -98,6 +99,19 @@ export class TemplatesService {
     });
   }
 
+  async getAllActive() {
+    return this.prisma.template.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        isActive: true
+      },
+      orderBy: { name: 'asc' }
+    });
+  }
+
   async getById(id: string) {
     const tpl = await this.prisma.template.findUnique({
       where: { id },
@@ -125,21 +139,7 @@ export class TemplatesService {
     return tpl;
   }
 
-  async createVersion(id: string, body: any) {
-    const existing = await this.prisma.template.findUnique({ where: { id }, include: { tasks: { include: { subtasks: true } } } });
-    if (!existing) throw new NotFoundException('Template not found');
-    const newTpl = await this.prisma.template.create({
-      data: {
-        name: body.name || existing.name,
-        version: body.version || `${existing.version}-1`,
-        tasks: {
-          create: (body.tasks || existing.tasks || []).map((t) => ({ title: t.title, description: t.description, subtasks: { create: (t.subtasks || []).map(s => ({ description: s.description })) } })),
-        },
-      },
-      include: { tasks: { include: { subtasks: true } } },
-    });
-    return newTpl;
-  }
+
 
   async updateTemplate(id: string, data: any) {
     const existing = await this.prisma.template.findUnique({ 
@@ -165,7 +165,6 @@ export class TemplatesService {
       where: { id },
       data: {
         name: data.name,
-        version: data.version,
         description: data.description || null,
       }
     });
@@ -190,6 +189,7 @@ export class TemplatesService {
             name: stage.name,
             description: stage.description || null,
             order: stageIndex,
+            gemType: stage.gemType || 'ESMERALDA',
           }
         });
         
@@ -267,6 +267,7 @@ export class TemplatesService {
             name: stage.name,
             description: stage.description || null,
             order: stageIndex,
+            gemType: stage.gemType || 'ESMERALDA',
             templateId: id,
             tasks: {
               create: (stage.tasks || []).map((t, taskIndex) => ({

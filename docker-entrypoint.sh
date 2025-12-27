@@ -4,7 +4,7 @@ set -e
 echo "Waiting for database to be ready..."
 sleep 3
 
-echo "Pushing database schema..."
+echo "Syncing database schema..."
 npx prisma db push --skip-generate
 
 echo "Generating Prisma Client..."

@@ -21,6 +21,12 @@ export class TemplatesController {
     return this.templatesService.getAll();
   }
 
+  @Get('public/list')
+  async listPublic() {
+    // Lista apenas templates ativos sem autenticação (para configurações)
+    return this.templatesService.getAllActive();
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   async get(@Param('id') id: string) {
@@ -39,12 +45,5 @@ export class TemplatesController {
   @Patch(':id/toggle-active')
   async toggleActive(@Param('id') id: string) {
     return this.templatesService.toggleActive(id);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  @Post(':id/version')
-  async createVersion(@Param('id') id: string, @Body() body: any) {
-    return this.templatesService.createVersion(id, body);
   }
 }
