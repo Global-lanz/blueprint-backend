@@ -4,11 +4,11 @@ set -e
 echo "Waiting for database to be ready..."
 sleep 3
 
-echo "Running database migrations..."
-npx prisma migrate deploy || {
-  echo "No migrations found, creating database schema..."
-  npx prisma db push --accept-data-loss
-}
+echo "Syncing database schema..."
+npx prisma db push --skip-generate
+
+echo "Generating Prisma Client..."
+npx prisma generate
 
 echo "Seeding database..."
 npx prisma db seed || echo "Seed failed or already run"

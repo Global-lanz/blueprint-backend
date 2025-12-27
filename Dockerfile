@@ -15,7 +15,9 @@ COPY package.json package-lock.json* ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 ENV NODE_ENV=production
 ENV PORT=3333
 EXPOSE 3333
-CMD ["node", "dist/main.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

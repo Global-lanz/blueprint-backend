@@ -3,6 +3,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import { execSync } from 'child_process';
+import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 async function runMigrations() {
   try {
@@ -14,13 +16,44 @@ async function runMigrations() {
   }
 }
 
-async function runSeed() {
+async function seedDatabase() {
+  const prisma = new PrismaClient();
   try {
     console.log('Seeding database...');
-    execSync('npx prisma db seed', { stdio: 'inherit' });
+    
+    // Create admin user
+    const hashedAdmin = await bcrypt.hash('admin123', 10);
+    const admin = await prisma.user.upsert({
+      where: { email: 'admin@blueprint.local' },
+      update: {},
+      create: { 
+        name: 'Admin User', 
+        email: 'admin@blueprint.local', 
+        password: hashedAdmin, 
+        role: 'ADMIN' 
+      },
+    });
+    console.log('✓ Admin user created:', admin.email);
+
+    // Create client user
+    const hashedClient = await bcrypt.hash('admin123', 10);
+    const client = await prisma.user.upsert({
+      where: { email: 'client@blueprint.local' },
+      update: {},
+      create: { 
+        name: 'Client User', 
+        email: 'client@blueprint.local', 
+        password: hashedClient, 
+        role: 'CLIENT' 
+      },
+    });
+    console.log('✓ Client user created:', client.email);
+
     console.log('Seed completed successfully');
   } catch (error) {
-    console.log('Seed skipped or already run');
+    console.error('Seed failed:', error);
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -29,7 +62,7 @@ async function bootstrap() {
   
   // Run migrations and seed before starting the app
   await runMigrations();
-  await runSeed();
+  await seedDatabase();
   
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
