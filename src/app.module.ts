@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { AppController } from './app.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { TemplatesModule } from './modules/templates/templates.module';
@@ -18,6 +19,7 @@ import { StagesModule } from './modules/stages/stages.module';
     SubtasksModule,
     StagesModule,
   ],
+  controllers: [AppController],
   providers: [PrismaService],
 })
 export class AppModule {}

@@ -1,6 +1,6 @@
 {
   "name": "blueprint-backend",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "BluePrint backend - NestJS + Prisma",
   "author": "",
   "license": "MIT",
