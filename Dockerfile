@@ -11,12 +11,20 @@ RUN npm run build
 
 FROM node:20-bullseye-slim
 WORKDIR /app
+
+# Build argument for version
+ARG APP_VERSION=unknown
+
 COPY package.json package-lock.json* ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
+
+# Create version file
+RUN echo "{\"version\": \"${APP_VERSION}\"}" > /app/version.json
+
 ENV NODE_ENV=production
 ENV PORT=3333
 EXPOSE 3333
