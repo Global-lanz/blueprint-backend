@@ -7,7 +7,7 @@ export class ProjectsService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
-  ) {}
+  ) { }
 
   async findAllWithTasks(userId: string) {
     const projects = await this.prisma.clientProject.findMany({
@@ -255,14 +255,46 @@ export class ProjectsService {
       throw new Error('Projeto não encontrado ou você não tem permissão');
     }
 
-    // Para cada stage, atualizar/criar tasks e subtasks
-    for (const [stageIndex, stage] of (stages || []).entries()) {
-      if (!stage.id) continue; // Só atualiza stages existentes
-      
-      const existingStage = project.projectStages.find(s => s.id === stage.id);
-      if (!existingStage) continue;
+    // Identificar stages para deletar
+    const incomingStageIds = (stages || []).filter(s => s.id).map(s => s.id);
+    const stagesToDelete = project.projectStages.filter(s => !incomingStageIds.includes(s.id));
 
-      const existingTaskIds = existingStage.tasks.map(t => t.id);
+    for (const stageToDelete of stagesToDelete) {
+      // Cascade deletará tasks e subtasks se configurado no Prisma, senão deletar manualmente
+      await this.prisma.projectStage.delete({ where: { id: stageToDelete.id } });
+    }
+
+    // Para cada stage, atualizar/criar
+    for (const [stageIndex, stage] of (stages || []).entries()) {
+      let stageId = stage.id;
+
+      if (stageId) {
+        // Atualizar stage existente
+        await this.prisma.projectStage.update({
+          where: { id: stageId },
+          data: {
+            name: stage.name,
+            order: stageIndex,
+            description: stage.description,
+            gemType: stage.gemType || 'ESMERALDA'
+          }
+        });
+      } else {
+        // Criar novo stage
+        const newStage = await this.prisma.projectStage.create({
+          data: {
+            projectId: projectId,
+            name: stage.name,
+            order: stageIndex,
+            description: stage.description,
+            gemType: stage.gemType || 'ESMERALDA'
+          }
+        });
+        stageId = newStage.id;
+      }
+
+      const existingStage = project.projectStages.find(s => s.id === stageId);
+      const existingTaskIds = existingStage?.tasks.map(t => t.id) || [];
       const incomingTaskIds = (stage.tasks || []).filter(t => t.id).map(t => t.id);
 
       // Deletar tasks removidas
@@ -281,11 +313,12 @@ export class ProjectsService {
               title: task.title,
               description: task.description,
               order: taskIndex,
+              stageId: stageId // Garantir que está no stage certo
             }
           });
 
           // Gerenciar subtasks
-          const existingTask = existingStage.tasks.find(t => t.id === task.id);
+          const existingTask = existingStage?.tasks.find(t => t.id === task.id);
           const existingSubtaskIds = existingTask?.subtasks.map(s => s.id) || [];
           const incomingSubtaskIds = (task.subtasks || []).filter(s => s.id).map(s => s.id);
 
@@ -317,7 +350,7 @@ export class ProjectsService {
               description: task.description,
               order: taskIndex,
               projectId: projectId,
-              stageId: stage.id,
+              stageId: stageId,
               subtasks: {
                 create: (task.subtasks || []).map(s => ({ description: s.description }))
               }
@@ -367,27 +400,27 @@ export class ProjectsService {
         }
       }
     });
-    
+
     if (!project) return;
-    
+
     // Calcular todas as subtarefas
     const allTasks = [
       ...project.projectTasks,
       ...project.projectStages.flatMap(stage => stage.tasks)
     ];
-    
+
     const allSubtasks = allTasks.flatMap(task => task.subtasks);
-    
+
     const totalSubtasks = allSubtasks.length;
     const completedSubtasks = allSubtasks.filter(s => s.completed).length;
     const progress = totalSubtasks ? (completedSubtasks / totalSubtasks) * 100 : 0;
-    
+
     await this.prisma.clientProject.update({
       where: { id: projectId },
       data: { progress }
     });
   }
-  
+
   async createStage(projectId: string, name: string, order: number) {
     return this.prisma.projectStage.create({
       data: { projectId, name, order }
@@ -456,7 +489,7 @@ export class ProjectsService {
     // Atualizar status e completed
     const updated = await this.prisma.projectTask.update({
       where: { id: taskId },
-      data: { 
+      data: {
         status: status as any,
         completed: completed
       }
@@ -636,7 +669,7 @@ export class ProjectsService {
     if (task.completed !== newCompleted || task.status !== newStatus) {
       await this.prisma.projectTask.update({
         where: { id: taskId },
-        data: { 
+        data: {
           completed: newCompleted,
           status: newStatus
         }
@@ -652,8 +685,8 @@ export class ProjectsService {
   }) {
     try {
       // Check if user already exists
-      let user = await this.prisma.user.findUnique({ 
-        where: { email: data.email } 
+      let user = await this.prisma.user.findUnique({
+        where: { email: data.email }
       });
 
       if (data.event === 'PURCHASE_COMPLETE') {
@@ -699,7 +732,7 @@ export class ProjectsService {
           const defaultTemplateSetting = await this.prisma.settings.findUnique({
             where: { key: 'default_template_id' }
           });
-          
+
           if (defaultTemplateSetting && defaultTemplateSetting.value) {
             await this.createProject(user.id, defaultTemplateSetting.value, 'Meu Projeto');
           }
