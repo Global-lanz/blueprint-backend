@@ -275,7 +275,7 @@ export class ProjectsService {
           data: {
             name: stage.name,
             order: stageIndex,
-            // description: stage.description // Opcional se existir no body
+            description: stage.description
           }
         });
       } else {
@@ -285,7 +285,8 @@ export class ProjectsService {
             projectId: projectId,
             name: stage.name,
             order: stageIndex,
-            gemType: 'ESMERALDA' // Default ou do body
+            description: stage.description,
+            gemType: 'ESMERALDA'
           }
         });
         stageId = newStage.id;
