@@ -275,7 +275,8 @@ export class ProjectsService {
           data: {
             name: stage.name,
             order: stageIndex,
-            description: stage.description
+            description: stage.description,
+            gemType: stage.gemType || 'ESMERALDA'
           }
         });
       } else {
@@ -286,7 +287,7 @@ export class ProjectsService {
             name: stage.name,
             order: stageIndex,
             description: stage.description,
-            gemType: 'ESMERALDA'
+            gemType: stage.gemType || 'ESMERALDA'
           }
         });
         stageId = newStage.id;
