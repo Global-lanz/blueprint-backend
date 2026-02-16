@@ -109,6 +109,7 @@ model ClientProject {
   currency        String?    @default("BRL")
   saleStartDate   DateTime?
   links           Json?
+  actualStartDate DateTime?
   projectStages   ProjectStage[]
   projectTasks    ProjectTask[]
   createdAt       DateTime   @default(now())

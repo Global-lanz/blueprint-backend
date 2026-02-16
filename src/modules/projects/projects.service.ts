@@ -210,6 +210,7 @@ export class ProjectsService {
     price?: string;
     currency?: string;
     saleStartDate?: Date;
+    actualStartDate?: Date;
     links?: any;
   }) {
     // Verificar se o projeto pertence ao usuário
@@ -227,6 +228,7 @@ export class ProjectsService {
     if (details.price !== undefined) updateData.price = details.price;
     if (details.currency !== undefined) updateData.currency = details.currency;
     if (details.saleStartDate !== undefined) updateData.saleStartDate = details.saleStartDate;
+    if (details.actualStartDate !== undefined) updateData.actualStartDate = details.actualStartDate;
     if (details.links !== undefined) updateData.links = details.links;
 
     // Atualizar detalhes do projeto
