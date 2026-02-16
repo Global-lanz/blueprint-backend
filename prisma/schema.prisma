@@ -88,7 +88,7 @@ model Task {
 model Subtask {
   id        String @id @default(cuid())
   description String
-  task      Task   @relation(fields: [taskId], references: [id])
+  task      Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId    String
   clientAnswers ClientSubtaskAnswer[]
   createdAt DateTime @default(now())
@@ -109,6 +109,7 @@ model ClientProject {
   currency        String?    @default("BRL")
   saleStartDate   DateTime?
   links           Json?
+  actualStartDate DateTime?
   projectStages   ProjectStage[]
   projectTasks    ProjectTask[]
   createdAt       DateTime   @default(now())
@@ -160,7 +161,7 @@ model ProjectSubtask {
 model ClientTaskAnswer {
   id        String   @id @default(cuid())
   projectId String
-  task      Task     @relation(fields: [taskId], references: [id])
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId    String
   answer    String
   createdAt DateTime @default(now())
@@ -170,7 +171,7 @@ model ClientTaskAnswer {
 model ClientSubtaskAnswer {
   id        String   @id @default(cuid())
   projectId String
-  subtask   Subtask  @relation(fields: [subtaskId], references: [id])
+  subtask   Subtask  @relation(fields: [subtaskId], references: [id], onDelete: Cascade)
   subtaskId String
   answer    String
   createdAt DateTime @default(now())

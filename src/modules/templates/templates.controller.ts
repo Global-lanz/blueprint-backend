@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Patch, UseGuards, Query } from '@nestjs/common';
 import { TemplatesService } from './templates.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -6,7 +6,7 @@ import { Roles } from '../auth/roles.decorator';
 
 @Controller('templates')
 export class TemplatesController {
-  constructor(private templatesService: TemplatesService) {}
+  constructor(private templatesService: TemplatesService) { }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
@@ -17,8 +17,9 @@ export class TemplatesController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  async list() {
-    return this.templatesService.getAll();
+  async list(@Query('includeInactive') includeInactive?: string) {
+    const showInactive = includeInactive === 'true';
+    return this.templatesService.getAll(showInactive);
   }
 
   @Get('public/list')

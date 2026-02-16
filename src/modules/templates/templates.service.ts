@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma.service';
 
 @Injectable()
 export class TemplatesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async createTemplate(data: any) {
     // Create template first
@@ -76,8 +76,9 @@ export class TemplatesService {
     });
   }
 
-  async getAll() {
+  async getAll(includeInactive: boolean = false) {
     return this.prisma.template.findMany({
+      where: includeInactive ? {} : { isActive: true },
       include: {
         stages: {
           include: {
@@ -95,7 +96,8 @@ export class TemplatesService {
             subtasks: true
           }
         }
-      }
+      },
+      orderBy: { createdAt: 'desc' }
     });
   }
 
@@ -142,7 +144,7 @@ export class TemplatesService {
 
 
   async updateTemplate(id: string, data: any) {
-    const existing = await this.prisma.template.findUnique({ 
+    const existing = await this.prisma.template.findUnique({
       where: { id },
       include: {
         stages: {
@@ -159,7 +161,7 @@ export class TemplatesService {
       }
     });
     if (!existing) throw new NotFoundException('Template not found');
-    
+
     // Update basic template info
     await this.prisma.template.update({
       where: { id },
@@ -168,17 +170,17 @@ export class TemplatesService {
         description: data.description || null,
       }
     });
-    
+
     // Get IDs from the incoming data
     const incomingStageIds = (data.stages || []).filter(s => s.id).map(s => s.id);
     const existingStageIds = existing.stages.map(s => s.id);
-    
+
     // Delete stages that are no longer in the list
     const stagesToDelete = existingStageIds.filter(id => !incomingStageIds.includes(id));
     for (const stageId of stagesToDelete) {
       await this.prisma.templateStage.delete({ where: { id: stageId } });
     }
-    
+
     // Process each stage (update or create)
     for (const [stageIndex, stage] of (data.stages || []).entries()) {
       if (stage.id) {
@@ -192,18 +194,18 @@ export class TemplatesService {
             gemType: stage.gemType || 'ESMERALDA',
           }
         });
-        
+
         // Get existing tasks for this stage
         const existingStage = existing.stages.find(s => s.id === stage.id);
         const existingTaskIds = existingStage?.tasks.map(t => t.id) || [];
         const incomingTaskIds = (stage.tasks || []).filter(t => t.id).map(t => t.id);
-        
+
         // Delete tasks that are no longer in the list
         const tasksToDelete = existingTaskIds.filter(id => !incomingTaskIds.includes(id));
         for (const taskId of tasksToDelete) {
           await this.prisma.task.delete({ where: { id: taskId } });
         }
-        
+
         // Process tasks
         for (const [taskIndex, task] of (stage.tasks || []).entries()) {
           if (task.id) {
@@ -216,18 +218,18 @@ export class TemplatesService {
                 order: taskIndex,
               }
             });
-            
+
             // Get existing subtasks
             const existingTask = existingStage?.tasks.find(t => t.id === task.id);
             const existingSubtaskIds = existingTask?.subtasks.map(s => s.id) || [];
             const incomingSubtaskIds = (task.subtasks || []).filter(s => s.id).map(s => s.id);
-            
+
             // Delete subtasks no longer in the list
             const subtasksToDelete = existingSubtaskIds.filter(id => !incomingSubtaskIds.includes(id));
             for (const subtaskId of subtasksToDelete) {
               await this.prisma.subtask.delete({ where: { id: subtaskId } });
             }
-            
+
             // Process subtasks
             for (const subtask of (task.subtasks || [])) {
               if (subtask.id) {
@@ -284,16 +286,16 @@ export class TemplatesService {
         });
       }
     }
-    
+
     // Handle tasks without stages (legacy)
     const existingTaskIds = existing.tasks.filter(t => !t.stageId).map(t => t.id);
     const incomingTaskIds = (data.tasks || []).filter(t => t.id).map(t => t.id);
-    
+
     const tasksToDelete = existingTaskIds.filter(id => !incomingTaskIds.includes(id));
     for (const taskId of tasksToDelete) {
       await this.prisma.task.delete({ where: { id: taskId } });
     }
-    
+
     for (const [taskIndex, task] of (data.tasks || []).entries()) {
       if (task.id) {
         await this.prisma.task.update({
@@ -304,16 +306,16 @@ export class TemplatesService {
             order: taskIndex,
           }
         });
-        
+
         const existingTask = existing.tasks.find(t => t.id === task.id);
         const existingSubtaskIds = existingTask?.subtasks.map(s => s.id) || [];
         const incomingSubtaskIds = (task.subtasks || []).filter(s => s.id).map(s => s.id);
-        
+
         const subtasksToDelete = existingSubtaskIds.filter(id => !incomingSubtaskIds.includes(id));
         for (const subtaskId of subtasksToDelete) {
           await this.prisma.subtask.delete({ where: { id: subtaskId } });
         }
-        
+
         for (const subtask of (task.subtasks || [])) {
           if (subtask.id) {
             await this.prisma.subtask.update({
@@ -343,7 +345,7 @@ export class TemplatesService {
         });
       }
     }
-    
+
     // Return updated template
     return this.prisma.template.findUnique({
       where: { id },
@@ -369,7 +371,7 @@ export class TemplatesService {
   async toggleActive(id: string) {
     const existing = await this.prisma.template.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Template not found');
-    
+
     const updated = await this.prisma.template.update({
       where: { id },
       data: { isActive: !existing.isActive },

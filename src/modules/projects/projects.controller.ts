@@ -5,7 +5,7 @@ import { WebhookGuard } from '../auth/webhook.guard';
 
 @Controller('projects')
 export class ProjectsController {
-  constructor(private service: ProjectsService) {}
+  constructor(private service: ProjectsService) { }
 
   @UseGuards(JwtAuthGuard)
   @Get()
@@ -45,6 +45,7 @@ export class ProjectsController {
     price?: string;
     currency?: string;
     saleStartDate?: string;
+    actualStartDate?: string;
     links?: any;
   }, @Req() req) {
     const details: any = {};
@@ -53,8 +54,9 @@ export class ProjectsController {
     if (body.price !== undefined) details.price = body.price;
     if (body.currency !== undefined) details.currency = body.currency;
     if (body.saleStartDate !== undefined) details.saleStartDate = body.saleStartDate ? new Date(body.saleStartDate) : null;
+    if (body.actualStartDate !== undefined) details.actualStartDate = body.actualStartDate ? new Date(body.actualStartDate) : null;
     if (body.links !== undefined) details.links = body.links;
-    
+
     return this.service.updateProjectDetails(id, req.user.id, details);
   }
 
@@ -73,8 +75,8 @@ export class ProjectsController {
   @UseGuards(JwtAuthGuard)
   @Patch(':projectId/tasks/:taskId/status')
   async updateTaskStatus(
-    @Param('projectId') projectId: string, 
-    @Param('taskId') taskId: string, 
+    @Param('projectId') projectId: string,
+    @Param('taskId') taskId: string,
     @Body() body: { status: string },
     @Req() req
   ) {
@@ -90,8 +92,8 @@ export class ProjectsController {
   @UseGuards(JwtAuthGuard)
   @Patch(':projectId/subtasks/:subtaskId/answer')
   async updateSubtaskAnswer(
-    @Param('projectId') projectId: string, 
-    @Param('subtaskId') subtaskId: string, 
+    @Param('projectId') projectId: string,
+    @Param('subtaskId') subtaskId: string,
     @Body() body: { answer: string },
     @Req() req
   ) {
@@ -101,8 +103,8 @@ export class ProjectsController {
   @UseGuards(JwtAuthGuard)
   @Patch(':projectId/tasks/:taskId/link')
   async updateTaskLink(
-    @Param('projectId') projectId: string, 
-    @Param('taskId') taskId: string, 
+    @Param('projectId') projectId: string,
+    @Param('taskId') taskId: string,
     @Body() body: { link: string | null },
     @Req() req
   ) {
@@ -112,8 +114,8 @@ export class ProjectsController {
   @UseGuards(JwtAuthGuard)
   @Patch(':projectId/subtasks/:subtaskId/link')
   async updateSubtaskLink(
-    @Param('projectId') projectId: string, 
-    @Param('subtaskId') subtaskId: string, 
+    @Param('projectId') projectId: string,
+    @Param('subtaskId') subtaskId: string,
     @Body() body: { link: string | null },
     @Req() req
   ) {
